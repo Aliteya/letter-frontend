@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apologize Service</title>
+    <!-- Подключаем Tailwind CSS для стилизации -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Дополнительные стили для плавных переходов */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .loader {
+            border-top-color: #3498db;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen font-sans">
+
+    <div class="bg-white rounded-lg shadow-xl p-6 md:p-8 w-full max-w-2xl mx-4">
+        
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl font-bold text-gray-800">Сервис отправки сообщений</h1>
+            <p class="text-gray-500 mt-2">Введите ваше имя и текст сообщения. Система проверит его и отправит в обработку.</p>
+        </header>
+
+        <!-- Форма для ввода данных -->
+        <form id="send-form">
+            <!-- НОВОЕ ПОЛЕ: Имя пользователя -->
+            <div class="mb-4">
+                <label for="user-name" class="block text-sm font-medium text-gray-700 mb-2">Ваше имя:</label>
+                <input 
+                    type="text"
+                    id="user-name" 
+                    name="user_name" 
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" 
+                    placeholder="Например: Иван"
+                    required
+                />
+            </div>
+
+            <div class="mb-4">
+                <label for="user-input" class="block text-sm font-medium text-gray-700 mb-2">Ваше сообщение:</label>
+                <textarea 
+                    id="user-input" 
+                    name="user_input" 
+                    rows="6" 
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" 
+                    placeholder="Например: 'Я бы хотел извиниться за...'"
+                    required
+                ></textarea>
+            </div>
+            
+            <button 
+                type="submit" 
+                id="submit-button"
+                class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out flex items-center justify-center"
+            >
+                <!-- Спиннер загрузки, изначально скрыт -->
+                <div id="loader" class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-6 w-6 mr-3 hidden"></div>
+                <span>Отправить</span>
+            </button>
+        </form>
+
+        <!-- Область для вывода результатов или ошибок -->
+        <div id="result-container" class="mt-6">
+            <!-- Сюда будет вставляться результат -->
+        </div>
+
+    </div>
+
+    <script>
+        // --- JavaScript логика ---
+
+        const sendForm = document.getElementById('send-form');
+        const userName = document.getElementById('user-name'); // Получаем поле имени
+        const userInput = document.getElementById('user-input');
+        const resultContainer = document.getElementById('result-container');
+        const submitButton = document.getElementById('submit-button');
+        const loader = document.getElementById('loader');
+
+        const API_ENDPOINT = 'https://waterletter.dpdns.org/send/';
+
+        sendForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            loader.classList.remove('hidden');
+            submitButton.disabled = true;
+            submitButton.querySelector('span').textContent = 'Отправка...';
+            
+            resultContainer.innerHTML = '';
+
+            const payload = {
+                name: userName.value,
+                reason: userInput.value
+            };
+
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    const detail = data.detail || 'Произошла неизвестная ошибка.';
+                    throw new Error(`Ошибка ${response.status}: ${detail}`);
+                }
+
+                displaySuccess(data);
+
+            } catch (error) {
+                displayError(error.message);
+            } finally {
+                loader.classList.add('hidden');
+                submitButton.disabled = false;
+                submitButton.querySelector('span').textContent = 'Отправить';
+            }
+        });
+
+        function displaySuccess(data) {
+            const successHtml = `
+                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-md fade-in" role="alert">
+                    <p class="font-bold">Успешно принято в обработку!</p>
+                    <p>Сервер вернул следующий ответ:</p>
+                    <pre class="bg-green-50 mt-2 p-2 rounded text-sm overflow-x-auto">${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+            resultContainer.innerHTML = successHtml;
+        }
+
+        function displayError(message) {
+            const errorHtml = `
+                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md fade-in" role="alert">
+                    <p class="font-bold">Ошибка</p>
+                    <p>${message}</p>
+                </div>
+            `;
+            resultContainer.innerHTML = errorHtml;
+        }
+
+    </script>
+</body>
+</html>
