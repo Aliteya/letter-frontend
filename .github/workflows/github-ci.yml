@@ -42,4 +42,4 @@ jobs:
                   aws-region: ${{ secrets.AWS_DEFAULT_REGION}}
             
               - name: Invalidate Cloudfront cache
-                run: aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "*"
+                run: aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
